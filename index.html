@@ -529,14 +529,14 @@
 
         try {
             // 1. Отправляем запрос к бесплатному Gemini через OpenRouter
-                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "gemini-1.5-flash:free", // Бесплатная модель
+            model: "gemini-1.5-flash:free",
             messages: [
                 {
                     role: "system",
@@ -623,6 +623,7 @@
 
 </body>
 </html>
+
 
 
 
