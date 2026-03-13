@@ -529,26 +529,26 @@
 
         try {
             // 1. Отправляем запрос к бесплатному Gemini через OpenRouter
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                    "Content-Type": "application/json"
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: "gemini-1.5-flash:free", // Бесплатная модель
+            messages: [
+                {
+                    role: "system",
+                    content: "Ты — Мудрая Сова, эксперт по юнгианскому психоанализу. Расшифруй сон пользователя красиво, глубоко и метафорично. Обращайся к нему бережно."
                 },
-                body: JSON.stringify({
-                    model: "mistralai/mistral-7b-instruct:free", // Бесплатная модель
-                    messages: [
-                        {
-                            role: "system",
-                            content: "Ты — Мудрая Сова, эксперт по юнгианскому психоанализу. Расшифруй сон пользователя красиво, глубоко и метафорично. Обращайся к пользователю уважительно. Текст должен быть не слишком длинным (2-3 абзаца). В самом конце твоего ответа, обязательно с новой строки, напиши слово 'PROMPT:' и сразу после него напиши короткое детальное описание этого сна НА АНГЛИЙСКОМ ЯЗЫКЕ для генерации картинки (стиль: mystical surrealism, cinematic lighting, dreamlike)."
-                        },
-                        {
-                            role: "user",
-                            content: `Мой сон: ${dreamText}`
-                        }
-                    ]
-                })
-            });
+                {
+                    role: "user",
+                    content: `Мой сон: ${dreamText}`
+                }
+            ]
+        })
+    });
 
             const data = await response.json();
 
@@ -623,5 +623,6 @@
 
 </body>
 </html>
+
 
 
