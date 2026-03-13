@@ -521,12 +521,12 @@ const OPENROUTER_API_KEY = secretPart1 + secretPart2;
                     "HTTP-Referer": "https://laurabessonova1-afk.github.io",
                     "X-Title": "InnerVision"
                 },
-                body: JSON.stringify({
-                    model: "meta-llama/llama-3-8b-instruct:free&quot;",
+                                body: JSON.stringify({
+                    model: "google/gemma-2-27b-it:free",
                     messages: [
                         {
                             role: "system",
-                            content: "Ты — Мудрая Сова, эксперт по юнгианскому психоанализу. Расшифруй сон пользователя красиво, глубоко и метафорично. Обращайся к нему бережно. В самом конце своего ответа ОБЯЗАТЕЛЬНО напиши слово PROMPT: и добавь короткое описание сна на английском языке для генерации картинки (например: PROMPT: dark forest, glowing owl, mystical surrealism)."
+                            content: "Ты — Мудрая Сова, эксперт по юнгианскому психоанализу. Расшифруй сон пользователя красиво, логично, глубоко и метафорично. Отвечай ТОЛЬКО на чистом, грамотном и красивом русском языке (никаких иностранных слов, англицизмов или иероглифов). В самом конце своего ответа ОБЯЗАТЕЛЬНО напиши слово PROMPT: и добавь короткое описание сна на английском языке для генерации картинки (например: PROMPT: dark forest, glowing owl, mystical surrealism)."
                         },
                         {
                             role: "user",
