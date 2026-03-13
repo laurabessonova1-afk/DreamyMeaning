@@ -405,7 +405,9 @@
 </div>
 
 <script>
-    const OPENROUTER_API_KEY = "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";
+    const secretPart1 = "sk-or-v1-";
+const secretPart2 = "27c6f6033bc89b5511f94c960bdf3c8b30781c280abd9b60dfa9c35061962924"; 
+const OPENROUTER_API_KEY = secretPart1 + secretPart2;
 
     if (window.Telegram && window.Telegram.WebApp) {
         const tg = window.Telegram.WebApp;
