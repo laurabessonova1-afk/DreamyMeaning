@@ -165,6 +165,8 @@
 
         button:hover { transform: scale(1.02); box-shadow: 0 15px 35px rgba(241, 211, 161, 0.6); }
 
+        button:disabled { background: #555; cursor: not-allowed; animation: none; box-shadow: none; color: #888; }
+
         @keyframes goldShimmer {
             0% { background-position: 0% 50%; }
             100% { background-position: 200% 50%; }
@@ -231,11 +233,25 @@
         .ai-response {
             font-style: italic; line-height: 1.8; color: #d1d1d1;
             padding: 20px; border-left: 2px solid var(--gold-bright); background: rgba(0,0,0,0.2); border-radius: 0 20px 20px 0;
+            font-size: 0.95rem;
         }
 
         .balance-display {
             text-align: center; margin-bottom: 15px; color: var(--gold-bright); 
             font-size: 0.9rem; font-style: italic; letter-spacing: 1px;
+        }
+
+        /* СТИЛЬ ДЛЯ СГЕНЕРИРОВАННОЙ КАРТИНКИ */
+        .generated-image-box {
+            display: none; 
+            margin-bottom: 20px; 
+            text-align: center;
+        }
+        .generated-image-box img {
+            max-width: 100%;
+            border-radius: 20px;
+            border: 1px solid rgba(241, 211, 161, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -243,7 +259,6 @@
 
 <div id="dream-background">
     <div class="fog-layer"></div>
-    <!-- РЕАЛИСТИЧНАЯ ЛУНА С ТЕНЬЮ ФАЗЫ -->
     <div id="moon-container">
         <div id="moon-shadow"></div>
     </div>
@@ -251,7 +266,6 @@
 
 <div class="app-container">
     <div class="header-box">
-        <!-- ЛОГОТИП СОВА -->
         <div class="logo-container">
             <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
                 <path d="M40 140 Q100 120 160 140 Q180 160 160 180 Q100 190 40 180 Q20 160 40 140" fill="#2a2212" stroke="#f1d3a1" stroke-width="2"/>
@@ -336,7 +350,6 @@
                 <div id="tag-other-sens" class="tag" onclick="toggleArea('area-other-sens', this)">+ Другое</div>
             </div>
 
-            <!-- СКРЫТОЕ ПОЛЕ "ДРУГОЕ" ДЛЯ ОЩУЩЕНИЙ -->
             <div id="area-other-sens" class="custom-input-area">
                 <div class="input-group">
                     <input type="text" id="custom-sens-text" placeholder="Опишите свои чувства...">
@@ -352,7 +365,6 @@
                 <option value="other">Другое (указать свое)</option>
             </select>
 
-            <!-- СКРЫТОЕ ПОЛЕ "ДРУГОЕ" ДЛЯ ЛОКАЦИИ -->
             <div id="area-other-place" class="custom-input-area">
                 <div class="input-group">
                     <input type="text" id="custom-place-text" placeholder="Опишите место...">
@@ -360,21 +372,29 @@
                 </div>
             </div>
 
+            <!-- ИЗМЕНИЛИ КНОПКУ -->
             <button id="analyze-btn" onclick="startAnalysis()">Расшифровать</button>
         </div>
     </div>
 
-    <!-- ЭКРАН 6: РЕЗУЛЬТАТ -->
+    <!-- ЭКРАН 6: РЕЗУЛЬТАТ (ДОБАВЛЕНО ФОТО И ОТВЕТ СОВЫ) -->
     <div id="screen-result" class="screen">
         <div class="card">
             <label>МУДРОСТЬ СОВЫ</label>
-            <div class="ai-response">
-                "Ваше видение несет в себе древние архетипы. Увиденное вами — это не просто сон, а отражение вашего внутреннего пути. Золотая пыль, окутывающая образы, предвещает ясность..."
+
+            <!-- Контейнер для сгенерированной картинки -->
+            <div id="dream-image-container" class="generated-image-box">
+                <img id="dream-image" src="" alt="Визуализация сна">
             </div>
+
+            <!-- Контейнер для текста нейросети -->
+            <div class="ai-response" id="ai-response-text">
+                Здесь появится расшифровка...
+            </div>
+
             <div class="balance-display" style="margin-top: 25px;">Энергия: ⭐️ 3 сферы</div>
 
             <button class="btn-gift" onclick="showScreen('screen-gift')">🎁 Подарить звезды</button>
-            <button onclick="alert('Материя сна формируется... Пожалуйста, подождите.')">Оживить момент сна (⭐️ 1)</button>
             <button class="btn-secondary" onclick="showScreen('screen-main')">В архив</button>
         </div>
     </div>
@@ -393,6 +413,11 @@
 </div>
 
 <script>
+    // ==========================================
+    // ВСТАВЬ СЮДА СВОЙ КЛЮЧ ОТ OPENROUTER
+    // ==========================================
+    const OPENROUTER_API_KEY = "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"; // ЗАМЕНИТЬ НА ВАШ КЛЮЧ!
+
     // Инициализация Telegram
     if (window.Telegram && window.Telegram.WebApp) {
         const tg = window.Telegram.WebApp;
@@ -401,104 +426,61 @@
 
     const bg = document.getElementById('dream-background');
 
-    // ==========================================
-    // ЛОГИКА ИСТИННОЙ ФАЗЫ ЛУНЫ
-    // ==========================================
+    // Фаза луны
     function setRealMoonPhase() {
         const date = new Date();
-        // Точная дата одного из новолуний для отсчета
         const newMoon = new Date("2024-05-08T03:22:00Z"); 
-        const synodicMonth = 29.53058867; // Длина лунного цикла в днях
-
-        // Считаем сколько дней прошло с новолуния
+        const synodicMonth = 29.53058867; 
         const diffDays = (date - newMoon) / (1000 * 60 * 60 * 24);
-
-        // Получаем текущую фазу (от 0 до 1)
         const phase = (diffDays % synodicMonth) / synodicMonth;
-
         const shadow = document.getElementById('moon-shadow');
         if (!shadow) return;
 
-        // Двигаем тень в зависимости от фазы:
         if (phase <= 0.5) {
-            // Растущая луна: тень уходит влево
             const offset = -(phase * 2) * 100;
             shadow.style.transform = `translateX(${offset}%)`;
         } else {
-            // Убывающая луна: тень приходит справа
             const offset = 100 - ((phase - 0.5) * 2) * 100;
             shadow.style.transform = `translateX(${offset}%)`;
         }
     }
     setRealMoonPhase();
-    // Обновляем фазу каждый час, чтобы она всегда была актуальна
     setInterval(setRealMoonPhase, 1000 * 60 * 60);
 
-    // ==========================================
-    // ОБРАЗЫ СНА (ПЛАВАЮТ И РАСТВОРЯЮТСЯ)
-    // ==========================================
-    const icons = [
-        '✨', '🌙', '🌌', '🦋', '🔮', '🗝️', 
-        '💃', '🩰', '🧸', '🪁', '👤', '🤔', 
-        '☁️', '⛅', '🐈', '🐾', '🕊️', '🌳', 
-        '🌸', '⛵', '🦄', '🚲' 
-    ];
-
+    // Образы сна
+    const icons = ['✨', '🌙', '🌌', '🦋', '🔮', '🗝️', '💃', '🩰', '🧸', '🪁', '👤', '🤔', '☁️', '⛅', '🐈', '🐾', '🕊️', '🌳', '🌸', '⛵', '🦄', '🚲'];
     function createVision() {
         const el = document.createElement('div');
         el.className = 'vision-object';
         el.innerText = icons[Math.floor(Math.random() * icons.length)];
-
-        // Появление в случайном месте по ширине (от 5% до 95% экрана)
         el.style.left = (Math.random() * 90 + 5) + 'vw';
-
-        // Скорость полета (от 8 до 14 секунд)
         const duration = Math.random() * 6 + 8;
         el.style.animationDuration = duration + 's'; 
-
         bg.appendChild(el);
-
-        // Удаляем элемент после завершения анимации растворения
-        setTimeout(() => {
-            if (el.parentNode) el.remove();
-        }, duration * 1000);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, duration * 1000);
     }
     setInterval(createVision, 2000);
 
-    // ==========================================
-    // ЗОЛОТАЯ И СЕРЕБРЯНАЯ ПЫЛЬЦА
-    // ==========================================
+    // Пыльца
     function createStardust() {
         const particle = document.createElement('div');
         particle.className = 'stardust';
-
         const size = Math.random() * 3 + 2;
-        particle.style.width = size + 'px';
-        particle.style.height = size + 'px';
-
+        particle.style.width = size + 'px'; particle.style.height = size + 'px';
         if (Math.random() > 0.5) {
-            particle.style.backgroundColor = '#ffd700'; 
-            particle.style.boxShadow = '0 0 10px #ffd700';
+            particle.style.backgroundColor = '#ffd700'; particle.style.boxShadow = '0 0 10px #ffd700';
         } else {
-            particle.style.backgroundColor = '#e0e0e0'; 
-            particle.style.boxShadow = '0 0 10px #ffffff';
+            particle.style.backgroundColor = '#e0e0e0'; particle.style.boxShadow = '0 0 10px #ffffff';
         }
-
-        particle.style.left = Math.random() * 100 + 'vw';
-        particle.style.top = Math.random() * 100 + 'vh';
-
+        particle.style.left = Math.random() * 100 + 'vw'; particle.style.top = Math.random() * 100 + 'vh';
         particle.style.animationDuration = (Math.random() * 6 + 6) + 's'; 
         particle.style.setProperty('--drift', (Math.random() * 100 - 50) + 'px'); 
         particle.style.setProperty('--max-opacity', (Math.random() * 0.6 + 0.3)); 
-
         bg.appendChild(particle);
         setTimeout(() => particle.remove(), 12000);
     }
     setInterval(createStardust, 200);
 
-    // ==========================================
-    // НАВИГАЦИЯ И ИНТЕРФЕЙС
-    // ==========================================
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -516,95 +498,129 @@
         }
     }
 
-    // ЛОГИКА "ДРУГОЕ" (Ощущения)
     function toggleArea(areaId, btn) {
         const area = document.getElementById(areaId);
         if (area.style.display === 'block') {
-            area.style.display = 'none';
-            btn.classList.remove('selected');
+            area.style.display = 'none'; btn.classList.remove('selected');
         } else {
-            area.style.display = 'block';
-            btn.classList.add('selected');
+            area.style.display = 'block'; btn.classList.add('selected');
         }
     }
 
-    // ЛОГИКА ВЫБОРА ЛОКАЦИИ (Место)
     function checkPlace(select) {
-        const area = document.getElementById('area-other-place');
-        area.style.display = (select.value === 'other') ? 'block' : 'none';
+        document.getElementById('area-other-place').style.display = (select.value === 'other') ? 'block' : 'none';
     }
 
-    function startAnalysis() {
+    // ==========================================
+    // ЛОГИКА НЕЙРОСЕТИ (МУДРАЯ СОВА + КАРТИНКА)
+    // ==========================================
+    async function startAnalysis() {
+        const dreamText = document.getElementById('dream-text').value;
+
+        if (!dreamText || dreamText.trim() === "") {
+            alert("Пожалуйста, опишите ваше видение (сон), прежде чем обращаться к Сове.");
+            return;
+        }
+
         const btn = document.getElementById('analyze-btn');
-        btn.innerText = "Чтение эфира...";
+        btn.innerText = "Связь с астралом...";
         btn.style.opacity = "0.6";
-        setTimeout(() => {
+        btn.disabled = true;
+
+        try {
+            // 1. Отправляем запрос к бесплатному Gemini через OpenRouter
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "google/gemini-1.5-flash:free", // Бесплатная модель
+                    messages: [
+                        {
+                            role: "system",
+                            content: "Ты — Мудрая Сова, эксперт по юнгианскому психоанализу. Расшифруй сон пользователя красиво, глубоко и метафорично. Обращайся к пользователю уважительно. Текст должен быть не слишком длинным (3-4 абзаца). В самом конце твоего ответа, обязательно с новой строки, напиши слово 'PROMPT:' и сразу после него напиши короткое детальное описание этого сна НА АНГЛИЙСКОМ ЯЗЫКЕ для генерации картинки (стиль: mystical surrealism, cinematic lighting, dreamlike)."
+                        },
+                        {
+                            role: "user",
+                            content: `Мой сон: ${dreamText}`
+                        }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.choices || data.choices.length === 0) {
+                throw new Error("Пустой ответ от нейросети");
+            }
+
+            const aiFullText = data.choices[0].message.content;
+
+            // 2. Разделяем ответ на текст для пользователя и промпт для картинки
+            let interpretation = aiFullText;
+            let imagePrompt = "mystical dream landscape, surrealism, cinematic lighting"; // На случай, если Сова забудет промпт
+
+            if (aiFullText.includes("PROMPT:")) {
+                const parts = aiFullText.split("PROMPT:");
+                interpretation = parts[0].trim();
+                imagePrompt = parts[1].trim() + ", mystical surrealism, high quality";
+            }
+
+            // 3. Выводим текст Совы (заменяем переносы строк на теги <br>)
+            document.getElementById('ai-response-text').innerHTML = interpretation.replace(/\n/g, '<br>');
+
+            // 4. Генерируем картинку через бесплатный Pollinations API
+            // nologo=true убирает водяной знак
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=512&height=512&nologo=true`;
+
+            const imgElement = document.getElementById('dream-image');
+            imgElement.src = imageUrl;
+
+            // Показываем контейнер с картинкой, когда она начнет грузиться
+            imgElement.onload = () => {
+                document.getElementById('dream-image-container').style.display = "block";
+            };
+
+            // Переключаем экран
+            showScreen('screen-result');
+
+        } catch (error) {
+            console.error("Ошибка при расшифровке:", error);
+            alert("Материя сна слишком плотная... Связь прервалась. Пожалуйста, проверьте API ключ и попробуйте еще раз.");
+        } finally {
+            // Возвращаем кнопку в нормальное состояние
             btn.innerText = "Расшифровать";
             btn.style.opacity = "1";
-            showScreen('screen-result');
-        }, 3000);
+            btn.disabled = false;
+        }
     }
 
-    // ==========================================
-    // ГОЛОСОВОЙ ВВОД (Web Speech API)
-    // ==========================================
+    // Голосовой ввод
     let recognition;
     let isRecording = false;
-
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.lang = 'ru-RU';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+        recognition.lang = 'ru-RU'; recognition.interimResults = false; recognition.maxAlternatives = 1;
     }
-
     function toggleDictation(inputId, btnElement) {
-        if (!recognition) {
-            alert("Ваш браузер не поддерживает магию голосового ввода. Пожалуйста, используйте текст.");
-            return;
-        }
-
-        if (isRecording) {
-            recognition.stop();
-            return;
-        }
-
+        if (!recognition) { alert("Ваш браузер не поддерживает магию голосового ввода."); return; }
+        if (isRecording) { recognition.stop(); return; }
         const inputField = document.getElementById(inputId);
-
-        recognition.onstart = function() {
-            isRecording = true;
-            btnElement.classList.add('recording');
-        };
-
+        recognition.onstart = function() { isRecording = true; btnElement.classList.add('recording'); };
         recognition.onresult = function(event) {
             const transcript = event.results[0][0].transcript;
-            if (inputField.value) {
-                inputField.value += " " + transcript;
-            } else {
-                inputField.value = transcript;
-            }
+            inputField.value = inputField.value ? inputField.value + " " + transcript : transcript;
         };
-
-        recognition.onspeechend = function() {
-            recognition.stop();
-        };
-
-        recognition.onend = function() {
-            isRecording = false;
-            btnElement.classList.remove('recording');
-        };
-
-        recognition.onerror = function(event) {
-            console.error('Ошибка распознавания речи: ' + event.error);
-            isRecording = false;
-            btnElement.classList.remove('recording');
-        };
-
+        recognition.onspeechend = function() { recognition.stop(); };
+        recognition.onend = function() { isRecording = false; btnElement.classList.remove('recording'); };
+        recognition.onerror = function() { isRecording = false; btnElement.classList.remove('recording'); };
         recognition.start();
     }
 </script>
 
 </body>
-
 </html>
+
